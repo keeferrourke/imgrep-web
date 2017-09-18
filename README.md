@@ -25,7 +25,7 @@ this `imgrep` may be used.
 To start a server on localhost:1337:
 
 ```
-imgrep server
+imgrep start
 ```
 Then just visit 'localhost:1337' in your favourite web brower ;)
 
