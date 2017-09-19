@@ -30,21 +30,6 @@ type ResultRow struct {
 	Bytes    []byte `json:"bytes"`
 }
 
-var Server = cli.Command{
-	Name:    "run",
-	Aliases: []string{"start"},
-	Usage:   "initialize gui server",
-	Action:  StartServer,
-	Flags: []cli.Flag{
-		cli.StringFlag{
-			Name:        "port, p",
-			Value:       "1337",
-			Usage:       "configure port",
-			Destination: &PORT,
-		},
-	},
-}
-
 func StartServer(c *cli.Context) error {
 	r := mux.NewRouter()
 	go files.InitFromPath(c)
@@ -120,6 +105,21 @@ func StartServer(c *cli.Context) error {
 	return nil
 }
 
+var Server = cli.Command{
+	Name:    "run",
+	Aliases: []string{"start"},
+	Usage:   "initialize gui server",
+	Action:  StartServer,
+	Flags: []cli.Flag{
+		cli.StringFlag{
+			Name:        "port, p",
+			Value:       "1337",
+			Usage:       "configure port",
+			Destination: &PORT,
+		},
+	},
+}
+
 func main() {
 	// customize cli
 	cli.VersionPrinter = func(c *cli.Context) {
@@ -131,10 +131,12 @@ func main() {
 	app := cli.NewApp()
 	app.Authors = []cli.Author{
 		cli.Author{
-			Name: "Keefer Rourke",
+			Name:  "Keefer Rourke",
+			Email: "mail@krourke.org",
 		},
 		cli.Author{
-			Name: "Ivan Zhang",
+			Name:  "Ivan Zhang",
+			Email: "ivan@ivanzhang.ca",
 		},
 	}
 	app.Copyright = "(c) 2017 under the MIT License"
@@ -150,7 +152,7 @@ func main() {
 		fmt.Fprintf(c.App.Writer, "Did you read the manual?\n")
 	}
 
-	//connect to local sqlite
+	// connect to local sqlite
 	storage.InitDB(files.DBFILE)
 
 	app.Run(os.Args)
