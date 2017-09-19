@@ -23,16 +23,37 @@ import (
 	"github.com/keeferrourke/imgrep/storage"
 )
 
-var PORT string
+var (
+	PORT   string
+	TPLDIR string
+	ASSETS string
+)
 
 type ResultRow struct {
 	Filename string `json:"filename"`
 	Bytes    []byte `json:"bytes"`
 }
 
+// reliably serve files even when binary is installed and run from arbitrary
+// working directory
+// this is horrible though so try to find a better way to this? :(
+func setPath(dir string) string {
+	basePath := "src" + string(os.PathSeparator) + "github.com" + string(os.PathSeparator) + "keeferrourke" + string(os.PathSeparator) + "imgrep-web"
+	p := os.Getenv("GOPATH") + string(os.PathSeparator) + basePath + string(os.PathSeparator) + dir
+	if _, err := os.Stat(p); os.IsNotExist(err) {
+		p = os.Getenv("GOROOT") + string(os.PathSeparator) + dir
+		if _, err := os.Stat(p); os.IsNotExist(err) {
+			log.Fatal("path error: can not stat directory " + p)
+		}
+	}
+	return p
+}
+
 func StartServer(c *cli.Context) error {
 	r := mux.NewRouter()
+
 	go files.InitFromPath(c)
+
 	r.HandleFunc("/imgrep/search", func(w http.ResponseWriter, r *http.Request) {
 		keyword := r.FormValue("keyword")
 		keyword = strings.TrimSpace(keyword)
@@ -84,7 +105,8 @@ func StartServer(c *cli.Context) error {
 	})
 
 	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		templates, err := template.ParseFiles("./index.html")
+		index := TPLDIR + string(os.PathSeparator) + "index.html"
+		templates, err := template.ParseFiles(index)
 		if err != nil {
 			log.Println(err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -96,8 +118,8 @@ func StartServer(c *cli.Context) error {
 		}
 	})
 
-	s := http.StripPrefix("/assets/", http.FileServer(http.Dir("./assets")))
-	r.PathPrefix("/assets/").Handler(s)
+	s := http.StripPrefix("/assets/", http.FileServer(http.Dir(ASSETS)))
+	r.PathPrefix("/assets").Handler(s)
 	fmt.Println("Started server on localhost:" + PORT)
 
 	http.ListenAndServe(":"+PORT, r)
@@ -118,6 +140,11 @@ var Server = cli.Command{
 			Destination: &PORT,
 		},
 	},
+}
+
+func init() {
+	TPLDIR = setPath("tpl")
+	ASSETS = setPath("assets")
 }
 
 func main() {
