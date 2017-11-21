@@ -52,7 +52,7 @@ func setPath(dir string) string {
 func StartServer(c *cli.Context) error {
 	r := mux.NewRouter()
 
-	go files.InitFromPath(c)
+	go files.InitFromPath(false)
 
 	r.HandleFunc("/imgrep/search", func(w http.ResponseWriter, r *http.Request) {
 		keyword := r.FormValue("keyword")
@@ -62,10 +62,10 @@ func StartServer(c *cli.Context) error {
 
 		results := []*ResultRow{}
 		for _, kw := range keywordList {
-			filenames, err := storage.Get(kw)
+			filenames, err := storage.Get(kw, true) // case insensitive search
 
 			if err != nil {
-				log.Fatalf(err.Error())
+				log.Printf(err.Error())
 			}
 
 			for _, file := range filenames {
@@ -81,9 +81,15 @@ func StartServer(c *cli.Context) error {
 					continue
 				}
 
+				// remove non-existing files from database
+				if _, err := os.Stat(file); os.IsNotExist(err) {
+					storage.Delete(file)
+					continue
+				}
+
 				f, err := ioutil.ReadFile(file)
 				if err != nil {
-					log.Fatalf(err.Error())
+					log.Printf(err.Error())
 				}
 
 				results = append(results, &ResultRow{
